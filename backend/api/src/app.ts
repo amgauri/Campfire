@@ -16,6 +16,7 @@ import type { SurgeStatusSource } from './modules/surge/port.js';
 import { createSurgeRouter } from './modules/surge/routes.js';
 import { SurgeStatusService } from './modules/surge/service.js';
 
+
 export function createApp(
   config: AppConfig,
   authDependencies: AuthDependencies = {},
