@@ -24,10 +24,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: "",
     },
-    profilePicture: {
-        type: String,
-        default: process.env.DEFAULT_PFP
-    },
+    // profilePicture: {
+    //     type: String,
+    //     default: process.env.DEFAULT_PFP
+    // },
     followers: {
         // USED TO STORE THE USERNAME OF followers
         type: [String],

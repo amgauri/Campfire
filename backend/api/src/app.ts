@@ -15,8 +15,8 @@ import { healthRouter } from './modules/health/routes.js';
 import type { SurgeStatusSource } from './modules/surge/port.js';
 import { createSurgeRouter } from './modules/surge/routes.js';
 import { SurgeStatusService } from './modules/surge/service.js';
-import { connectDB } from './lib/db.js'; // Adjusted path to match your folder structure
 
+import { connectDB } from './lib/db.js'; // Adjusted path to match your folder structure
 
 export function createApp(
   config: AppConfig,
@@ -35,7 +35,7 @@ export function createApp(
 
   //  CONNECT TO MONGO DB
   connectDB();
-
+  console.log("REQ line crossed....");
 
   app.use('/api/v1/health', healthRouter);
   app.use('/api/v1/auth', createAuthModule(config, authDependencies));
