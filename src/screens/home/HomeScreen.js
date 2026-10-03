@@ -1,14 +1,19 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
+import { useRouter } from 'expo-router';
 
 import AppText from '@/components/common/AppText';
+import Button from '@/components/common/Button';
+import Card from '@/components/common/Card';
 import Screen from '@/components/common/Screen';
+import { ROUTES } from '@/constants/routes';
 import { env } from '@/config/env';
 import { useHealth } from '@/hooks/useHealth';
 import { useTheme } from '@/hooks/useTheme';
 import { useAppModeStore } from '@/state/stores/appModeStore';
 
 export default function HomeScreen() {
-  const { colors, spacing, radius, mode } = useTheme();
+  const router = useRouter();
+  const { spacing, mode } = useTheme();
   const setMode = useAppModeStore((state) => state.setMode);
   const { data, isLoading, isError, error, refetch } = useHealth();
 
@@ -17,53 +22,38 @@ export default function HomeScreen() {
   else if (!isLoading && data) healthText = `API: ${data.status} (${data.service})`;
 
   return (
-    <Screen style={styles.center}>
-      <AppText variant="title">Campfire</AppText>
-      <AppText muted style={{ marginTop: spacing.sm }}>
-        Stage 0.1: architecture scaffold
-      </AppText>
+    <Screen style={{ justifyContent: 'center', gap: spacing.lg }}>
+      <View style={{ gap: spacing.xs }}>
+        <AppText variant="display">Campfire</AppText>
+        <AppText tone="muted">Stage 0.2: design system</AppText>
+      </View>
 
-      <View
-        style={[
-          styles.card,
-          {
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
-            borderRadius: radius.md,
-            marginTop: spacing.lg,
-            padding: spacing.md,
-          },
-        ]}
-      >
+      <Card>
         <AppText variant="caption">Environment: {env.appEnv}</AppText>
         <AppText variant="caption">Mocks: {env.useMocks ? 'on' : 'off'}</AppText>
         <AppText variant="caption">Base URL: {env.apiBaseUrl}</AppText>
-        <AppText variant="caption">{healthText}</AppText>
-      </View>
+        <AppText variant="caption" tone={isError ? 'danger' : 'default'}>
+          {healthText}
+        </AppText>
+      </Card>
 
-      <View style={[styles.row, { marginTop: spacing.lg, gap: spacing.sm }]}>
-        <Pressable
+      <View style={{ gap: spacing.sm }}>
+        <Button
+          title={`Preview ${mode === 'day' ? 'Night' : 'Day'}`}
+          variant={mode === 'day' ? 'surge' : 'primary'}
+          leftIcon={mode === 'day' ? 'night' : 'day'}
           onPress={() => setMode(mode === 'day' ? 'night' : 'day')}
-          style={[styles.button, { backgroundColor: colors.accent, borderRadius: radius.md }]}
-        >
-          <AppText style={styles.buttonText}>Preview {mode === 'day' ? 'Night' : 'Day'}</AppText>
-        </Pressable>
-
-        <Pressable
-          onPress={() => refetch()}
-          style={[styles.button, { borderColor: colors.border, borderWidth: 1, borderRadius: radius.md }]}
-        >
-          <AppText>Recheck API</AppText>
-        </Pressable>
+        />
+        <Button title="Recheck API" variant="secondary" leftIcon="refresh" onPress={() => refetch()} />
+        {!env.isProduction ? (
+          <Button
+            title="Open design system"
+            variant="ghost"
+            rightIcon="forward"
+            onPress={() => router.push(ROUTES.designSystem)}
+          />
+        ) : null}
       </View>
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  center: { alignItems: 'center', justifyContent: 'center' },
-  card: { borderWidth: 1, alignSelf: 'stretch' },
-  row: { flexDirection: 'row' },
-  button: { paddingHorizontal: 16, paddingVertical: 12 },
-  buttonText: { color: '#FFFFFF', fontWeight: '600' },
-});

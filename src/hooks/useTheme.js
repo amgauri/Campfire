@@ -1,7 +1,7 @@
-import { palettes, spacing, radius, typography } from '@/constants/theme';
+import { getTheme } from '@/theme';
 import { useAppModeStore } from '@/state/stores/appModeStore';
 
 export function useTheme() {
   const mode = useAppModeStore((state) => state.mode);
-  return { mode, colors: palettes[mode], spacing, radius, typography };
+  return getTheme(mode);
 }
