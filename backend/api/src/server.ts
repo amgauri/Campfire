@@ -1,15 +1,15 @@
 import { createApp } from './app.js';
 import { loadConfig } from './config/env.js';
 import { createLogger } from './config/logger.js';
+import { MongoRefreshSessionRepository } from './infrastructure/auth/mongo-refresh-session-repository.js';
+import { MongoUserRepository } from './infrastructure/auth/mongo-user-repository.js';
 
 const config = loadConfig();
-if (config.nodeEnv === 'production') {
-  throw new Error(
-    'Persistent authentication repositories are required in production',
-  );
-}
 const logger = createLogger(config);
-const app = createApp(config);
+const app = createApp(config, {
+  users: new MongoUserRepository(),
+  refreshSessions: new MongoRefreshSessionRepository(),
+});
 
 app.listen(config.port, config.host, () => {
   logger.info(
