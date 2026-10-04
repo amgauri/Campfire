@@ -50,6 +50,8 @@ const envSchema = z.object({
     .min(1)
     .max(90)
     .default(30),
+  FASTAPI_BASE_URL: z.union([originSchema, z.literal('')]).default(''),
+  FASTAPI_TIMEOUT_MS: z.coerce.number().int().min(100).max(10000).default(3000),
 });
 
 export type AppConfig = {
@@ -61,6 +63,8 @@ export type AppConfig = {
   authAccessTokenSecret: string;
   authAccessTokenTtlSeconds: number;
   authRefreshTokenTtlDays: number;
+  fastApiBaseUrl: string | null;
+  fastApiTimeoutMs: number;
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -81,5 +85,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     authAccessTokenSecret: result.data.AUTH_ACCESS_TOKEN_SECRET,
     authAccessTokenTtlSeconds: result.data.AUTH_ACCESS_TOKEN_TTL_SECONDS,
     authRefreshTokenTtlDays: result.data.AUTH_REFRESH_TOKEN_TTL_DAYS,
+    fastApiBaseUrl: result.data.FASTAPI_BASE_URL || null,
+    fastApiTimeoutMs: result.data.FASTAPI_TIMEOUT_MS,
   };
 }

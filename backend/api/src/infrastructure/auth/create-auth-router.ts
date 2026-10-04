@@ -1,4 +1,4 @@
-import type { Router } from 'express';
+import type { RequestHandler, Router } from 'express';
 import type { AppConfig } from '../../config/env.js';
 import { authenticate } from '../../modules/auth/middleware.js';
 import type {
@@ -19,10 +19,17 @@ export type AuthDependencies = {
   clock?: Clock;
 };
 
+export type AuthModule = {
+  router: Router;
+  authenticated: RequestHandler;
+  users: UserRepository;
+  clock: Clock;
+};
+
 export function createAuthModule(
   config: AppConfig,
   dependencies: AuthDependencies = {},
-): Router {
+): AuthModule {
   const users = dependencies.users ?? new InMemoryUserRepository();
   const refreshSessions =
     dependencies.refreshSessions ?? new InMemoryRefreshSessionRepository();
@@ -41,5 +48,11 @@ export function createAuthModule(
     config.authAccessTokenTtlSeconds,
     config.authRefreshTokenTtlDays,
   );
-  return authRoutes(service, authenticate(tokens, users));
+  const authenticated = authenticate(tokens, users);
+  return {
+    router: authRoutes(service, authenticated),
+    authenticated,
+    users,
+    clock,
+  };
 }

@@ -10,19 +10,37 @@ import {
   createAuthModule,
   type AuthDependencies,
 } from './infrastructure/auth/create-auth-router.js';
-import { InactiveSurgeStatusSource } from './infrastructure/surge/inactive-surge-status-source.js';
+import { InMemoryPostRepository } from './infrastructure/posts/in-memory-post-repository.js';
+import { InMemorySurgeStatusRepository } from './infrastructure/surge/in-memory-surge-status-repository.js';
 import { healthRouter } from './modules/health/routes.js';
-import type { SurgeStatusSource } from './modules/surge/port.js';
+import { PostInteractionService } from './modules/posts/interaction-service.js';
+import { createPostRouter } from './modules/posts/routes.js';
+import { PostService } from './modules/posts/service.js';
+import { createSurgeAdminRouter } from './modules/surge/admin-routes.js';
+import type {
+  SurgeOverrideRepository,
+  SurgeStatusSource,
+} from './modules/surge/port.js';
 import { createSurgeRouter } from './modules/surge/routes.js';
 import { SurgeStatusService } from './modules/surge/service.js';
+import { createUserProfileRouter } from './modules/users/routes.js';
+import { UserProfileService } from './modules/users/service.js';
 
 export function createApp(
   config: AppConfig,
   authDependencies: AuthDependencies = {},
-  surgeStatusSource: SurgeStatusSource = new InactiveSurgeStatusSource(),
+  surgeStatusSource: SurgeStatusSource = new InMemorySurgeStatusRepository(),
 ) {
   const app = express();
   const logger = createLogger(config);
+  const auth = createAuthModule(config, authDependencies);
+  const posts = new InMemoryPostRepository();
+  const overrideSource: SurgeOverrideRepository | undefined =
+    'setOverride' in surgeStatusSource &&
+    typeof surgeStatusSource.setOverride === 'function'
+      ? (surgeStatusSource as SurgeOverrideRepository)
+      : undefined;
+  const surge = new SurgeStatusService(surgeStatusSource, overrideSource);
 
   app.disable('x-powered-by');
   app.use(requestIdMiddleware);
@@ -32,10 +50,26 @@ export function createApp(
   app.use(express.json({ limit: '100kb' }));
 
   app.use('/api/v1/health', healthRouter);
-  app.use('/api/v1/auth', createAuthModule(config, authDependencies));
+  app.use('/api/v1/auth', auth.router);
   app.use(
-    '/api/v1/surge',
-    createSurgeRouter(new SurgeStatusService(surgeStatusSource)),
+    '/api/v1/users',
+    createUserProfileRouter(
+      new UserProfileService(auth.users, auth.clock),
+      auth.authenticated,
+    ),
+  );
+  app.use(
+    '/api/v1/posts',
+    createPostRouter(
+      new PostService(posts, auth.clock),
+      new PostInteractionService(posts, auth.clock),
+      auth.authenticated,
+    ),
+  );
+  app.use('/api/v1/surge', createSurgeRouter(surge));
+  app.use(
+    '/api/v1/admin/surge',
+    createSurgeAdminRouter(surge, auth.authenticated),
   );
 
   app.use(notFoundHandler);

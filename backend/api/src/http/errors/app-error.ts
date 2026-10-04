@@ -10,7 +10,8 @@ export type ErrorCode =
   | 'UNAUTHENTICATED'
   | 'FORBIDDEN'
   | 'INVALID_REFRESH_TOKEN'
-  | 'RATE_LIMITED';
+  | 'RATE_LIMITED'
+  | 'SERVICE_UNAVAILABLE';
 
 export class AppError extends Error {
   constructor(

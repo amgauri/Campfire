@@ -51,4 +51,16 @@ export class InMemoryUserRepository implements UserRepository {
     this.byId.set(userId, updated);
     return Promise.resolve({ ...updated, interests: [...updated.interests] });
   }
+
+  updateDisplayName(
+    userId: string,
+    displayName: string,
+    updatedAt: string,
+  ): Promise<User | null> {
+    const user = this.byId.get(userId);
+    if (!user) return Promise.resolve(null);
+    const updated: User = { ...user, displayName, updatedAt };
+    this.byId.set(userId, updated);
+    return Promise.resolve({ ...updated, interests: [...updated.interests] });
+  }
 }

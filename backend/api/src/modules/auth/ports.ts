@@ -11,6 +11,11 @@ export interface UserRepository {
     interests: string[],
     updatedAt: string,
   ): Promise<User | null>;
+  updateDisplayName(
+    userId: string,
+    displayName: string,
+    updatedAt: string,
+  ): Promise<User | null>;
 }
 
 export type RotateResult =

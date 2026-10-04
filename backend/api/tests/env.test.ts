@@ -19,6 +19,8 @@ describe('environment configuration', () => {
       authAccessTokenSecret: testSecret,
       authAccessTokenTtlSeconds: 900,
       authRefreshTokenTtlDays: 30,
+      fastApiBaseUrl: null,
+      fastApiTimeoutMs: 3000,
     });
   });
 
@@ -46,6 +48,12 @@ describe('environment configuration', () => {
         AUTH_ACCESS_TOKEN_SECRET: testSecret,
       }),
     ).toThrow('Invalid environment configuration: HOST');
+    expect(() =>
+      loadConfig({
+        FASTAPI_BASE_URL: 'https://example.com/path',
+        AUTH_ACCESS_TOKEN_SECRET: testSecret,
+      }),
+    ).toThrow('Invalid environment configuration: FASTAPI_BASE_URL');
   });
 
   it('accepts LAN binding and bounded token lifetimes', () => {
@@ -58,5 +66,21 @@ describe('environment configuration', () => {
     expect(config.host).toBe('0.0.0.0');
     expect(config.authAccessTokenTtlSeconds).toBe(600);
     expect(config.authRefreshTokenTtlDays).toBe(14);
+  });
+
+  it('validates optional FastAPI origin and timeout without requiring the service', () => {
+    const config = loadConfig({
+      AUTH_ACCESS_TOKEN_SECRET: testSecret,
+      FASTAPI_BASE_URL: 'http://127.0.0.1:8000',
+      FASTAPI_TIMEOUT_MS: '2500',
+    });
+    expect(config.fastApiBaseUrl).toBe('http://127.0.0.1:8000');
+    expect(config.fastApiTimeoutMs).toBe(2500);
+    expect(() =>
+      loadConfig({
+        AUTH_ACCESS_TOKEN_SECRET: testSecret,
+        FASTAPI_TIMEOUT_MS: '0',
+      }),
+    ).toThrow('Invalid environment configuration: FASTAPI_TIMEOUT_MS');
   });
 });

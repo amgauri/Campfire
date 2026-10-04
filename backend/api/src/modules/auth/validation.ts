@@ -1,11 +1,12 @@
 import { z } from 'zod';
 
 const email = z.string().trim().toLowerCase().pipe(z.email().max(254));
+export const displayNameSchema = z.string().trim().min(1).max(80);
 
 export const registerSchema = z.strictObject({
   email,
   password: z.string().min(12).max(128),
-  displayName: z.string().trim().min(1).max(80),
+  displayName: displayNameSchema,
 });
 
 export const loginSchema = z.strictObject({
