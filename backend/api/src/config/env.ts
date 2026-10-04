@@ -18,6 +18,14 @@ const signingKeySchema = z.string().refine((value) => {
   return bytes.length === 32 && bytes.toString('base64url') === value;
 }, 'Expected 32 random bytes encoded as base64url');
 
+const mongoUriSchema = z
+  .string()
+  .max(2048)
+  .refine(
+    (value) => value === '' || /^mongodb(?:\+srv)?:\/\/\S+$/.test(value),
+    'Expected a MongoDB connection URI',
+  );
+
 const envSchema = z.object({
   NODE_ENV: z
     .enum(['development', 'test', 'production'])
@@ -52,6 +60,7 @@ const envSchema = z.object({
     .default(30),
   FASTAPI_BASE_URL: z.union([originSchema, z.literal('')]).default(''),
   FASTAPI_TIMEOUT_MS: z.coerce.number().int().min(100).max(10000).default(3000),
+  MONGO_URI: mongoUriSchema.default(''),
 });
 
 export type AppConfig = {
@@ -65,6 +74,7 @@ export type AppConfig = {
   authRefreshTokenTtlDays: number;
   fastApiBaseUrl: string | null;
   fastApiTimeoutMs: number;
+  mongoUri: string | null;
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -87,5 +97,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     authRefreshTokenTtlDays: result.data.AUTH_REFRESH_TOKEN_TTL_DAYS,
     fastApiBaseUrl: result.data.FASTAPI_BASE_URL || null,
     fastApiTimeoutMs: result.data.FASTAPI_TIMEOUT_MS,
+    mongoUri: result.data.MONGO_URI || null,
   };
 }

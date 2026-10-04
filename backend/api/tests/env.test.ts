@@ -21,6 +21,7 @@ describe('environment configuration', () => {
       authRefreshTokenTtlDays: 30,
       fastApiBaseUrl: null,
       fastApiTimeoutMs: 3000,
+      mongoUri: null,
     });
   });
 
@@ -82,5 +83,19 @@ describe('environment configuration', () => {
         FASTAPI_TIMEOUT_MS: '0',
       }),
     ).toThrow('Invalid environment configuration: FASTAPI_TIMEOUT_MS');
+  });
+
+  it('validates an optional MongoDB connection URI without exposing its value', () => {
+    const uri = 'mongodb://127.0.0.1:27017/campfire';
+    expect(
+      loadConfig({ AUTH_ACCESS_TOKEN_SECRET: testSecret, MONGO_URI: uri })
+        .mongoUri,
+    ).toBe(uri);
+    expect(() =>
+      loadConfig({
+        AUTH_ACCESS_TOKEN_SECRET: testSecret,
+        MONGO_URI: 'postgresql://hidden-secret',
+      }),
+    ).toThrow('Invalid environment configuration: MONGO_URI');
   });
 });
