@@ -1,5 +1,7 @@
 import { http } from '../httpClient';
 import { ENDPOINTS } from '../endpoints';
 
-/** @returns {Promise<import('@/types/common').SurgeStatus>} */
-export const getStatus = (options) => http.get(ENDPOINTS.surge.status, options);
+export async function getStatus(options) {
+  const raw = await http.get(ENDPOINTS.surge.status, options);
+  return raw?.data ?? raw;
+}

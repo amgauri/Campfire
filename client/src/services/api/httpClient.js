@@ -11,23 +11,26 @@ export class ApiError extends Error {
   }
 }
 
-// Authentication is not implemented yet. Later, the auth layer will register a
-// provider here so every request can attach a token without touching API modules.
 let authTokenProvider = () => null;
+let sessionHandlers = { refresh: null, onExpired: null };
+let refreshing = null; // one refresh at a time
 
 export function setAuthTokenProvider(provider) {
   authTokenProvider = typeof provider === 'function' ? provider : () => null;
 }
 
+/** refresh(): Promise<newAccessToken|null>.  onExpired(): called when the session is dead. */
+export function setSessionHandlers(handlers) {
+  sessionHandlers = { ...sessionHandlers, ...handlers };
+}
+
 function buildUrl(path, query) {
   const url = `${env.apiBaseUrl}${path.startsWith('/') ? path : `/${path}`}`;
   if (!query) return url;
-
   const params = Object.entries(query)
-    .filter(([, value]) => value !== undefined && value !== null)
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    .filter(([, v]) => v !== undefined && v !== null)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
     .join('&');
-
   return params ? `${url}?${params}` : url;
 }
 
@@ -41,10 +44,10 @@ async function parseBody(response) {
   }
 }
 
-async function request(method, path, { body, query, headers, signal, timeoutMs } = {}) {
+async function request(method, path, opts = {}) {
+  const { body, query, headers, signal, timeoutMs, skipAuth = false, _retried = false } = opts;
   const controller = new AbortController();
   let timedOut = false;
-
   const timer = setTimeout(() => {
     timedOut = true;
     controller.abort();
@@ -55,7 +58,7 @@ async function request(method, path, { body, query, headers, signal, timeoutMs }
     else signal.addEventListener('abort', () => controller.abort());
   }
 
-  const token = await authTokenProvider();
+  const token = skipAuth ? null : authTokenProvider();
 
   try {
     const response = await fetch(buildUrl(path, query), {
@@ -73,21 +76,29 @@ async function request(method, path, { body, query, headers, signal, timeoutMs }
     const data = await parseBody(response);
 
     if (!response.ok) {
-      throw new ApiError(
-        (data && data.message) || `Request failed with status ${response.status}`,
-        { status: response.status, code: (data && data.code) || 'HTTP_ERROR', details: data }
-      );
+      // Expired access token: refresh once, then retry the same request.
+      if (response.status === 401 && token && !_retried && sessionHandlers.refresh) {
+        refreshing = refreshing ?? sessionHandlers.refresh().finally(() => { refreshing = null; });
+        const newToken = await refreshing;
+        if (newToken) return await request(method, path, { ...opts, _retried: true });
+        sessionHandlers.onExpired?.();
+      } else if (response.status === 401 && token && _retried) {
+        sessionHandlers.onExpired?.();
+      }
+      throw new ApiError((data && data.message) || `Request failed with status ${response.status}`, {
+        status: response.status,
+        code: (data && data.code) || 'HTTP_ERROR',
+        details: data,
+      });
     }
 
     return data;
   } catch (error) {
     if (error instanceof ApiError) throw error;
-
     if (error && error.name === 'AbortError') {
       if (timedOut) throw new ApiError('Request timed out', { code: 'TIMEOUT' });
-      throw error; // cancelled by caller (e.g. React Query)
+      throw error;
     }
-
     logger.warn('Network error', method, path, error);
     throw new ApiError('Network request failed', { code: 'NETWORK_ERROR' });
   } finally {

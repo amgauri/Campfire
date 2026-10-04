@@ -26,13 +26,19 @@ export default function SignupScreen() {
     try {
       await signup({ displayName, email, password }); // phase becomes needsOnboarding; guards take over
     } catch (e) {
-      setError(getErrorCopy(e).message);
+      setError(
+        e?.code === 'EMAIL_IN_USE'
+          ? 'That email is already registered.'
+          : e?.code === 'VALIDATION_ERROR'
+            ? 'Check your details. Password must be 12 to 128 characters.'
+            : getErrorCopy(e).message
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
-  const ready = displayName.trim() && email.trim() && password.length >= 6;
+  const ready = displayName.trim() && email.trim() && password.length >= 12;
 
   return (
     <Screen>
@@ -58,7 +64,7 @@ export default function SignupScreen() {
           onChangeText={setPassword}
           secureTextEntry
           autoCapitalize="none"
-          helperText="At least 6 characters."
+          helperText="12 to 128 characters."
           error={error}
         />
         <Button title="Sign up" onPress={onSubmit} loading={submitting} disabled={!ready} fullWidth />

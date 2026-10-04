@@ -1,15 +1,30 @@
 import { http } from '../httpClient';
 import { ENDPOINTS } from '../endpoints';
 
-// PROVISIONAL contract: every call below resolves to an AuthSession
-// ({ user, token }) except logout. See src/types/common.js.
+const unwrap = (raw) => raw?.data ?? raw;
 
-/** No token persistence yet, so there is nothing to restore. Replace when auth storage exists. */
-export async function restoreSession() {
-  return null;
+export async function login({ email, password }, options) {
+  return unwrap(await http.post(ENDPOINTS.auth.login, { email, password }, { ...options, skipAuth: true }));
 }
 
-export const login = (credentials, options) => http.post(ENDPOINTS.auth.login, credentials, options);
-export const signup = (payload, options) => http.post(ENDPOINTS.auth.signup, payload, options);
-export const logout = (options) => http.post(ENDPOINTS.auth.logout, undefined, options);
-export const completeOnboarding = (payload, options) => http.post(ENDPOINTS.auth.onboarding, payload, options);
+export async function signup({ displayName, email, password }, options) {
+  return unwrap(
+    await http.post(ENDPOINTS.auth.signup, { displayName, email, password }, { ...options, skipAuth: true })
+  );
+}
+
+export async function getSession(options) {
+  return unwrap(await http.get(ENDPOINTS.auth.session, options));
+}
+
+export async function refresh(refreshToken, options) {
+  return unwrap(await http.post(ENDPOINTS.auth.refresh, { refreshToken }, { ...options, skipAuth: true }));
+}
+
+export async function completeOnboarding({ interests }, options) {
+  return unwrap(await http.post(ENDPOINTS.auth.onboarding, { interests }, options));
+}
+
+export async function logout(refreshToken, options) {
+  await http.post(ENDPOINTS.auth.logout, { refreshToken }, { ...options, skipAuth: true });
+}
