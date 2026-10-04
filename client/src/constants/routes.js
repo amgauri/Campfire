@@ -4,6 +4,8 @@ export const ROUTES = Object.freeze({
   home: '/',
   surge: '/surge',
   profile: '/profile',
+  createPost: '/create-post',
+  chat: (chatId) => `/chat/${chatId}`,
 
   login: '/login',
   signup: '/signup',

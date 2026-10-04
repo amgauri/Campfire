@@ -3,7 +3,7 @@
 export const ICONS = Object.freeze({
   home: 'home-outline', homeActive: 'home',
   surge: 'flame-outline', surgeActive: 'flame',
-  messages: 'chatbubbles-outline', messagesActive: 'chatbubbles',
+  messages: 'chatbubble-ellipses-outline', messagesActive: 'chatbubble-ellipses',
   profile: 'person-outline', profileActive: 'person',
   search: 'search-outline',
   notifications: 'notifications-outline',
