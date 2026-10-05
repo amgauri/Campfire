@@ -6,7 +6,7 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_APP_ENV": "development",
-        "EXPO_PUBLIC_API_BASE_URL": "http://localhost:3000",
+        "EXPO_PUBLIC_API_BASE_URL": "http://localhost:3000/api/v1",
         "EXPO_PUBLIC_USE_MOCKS": "true"
       }
     },
@@ -14,14 +14,14 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_APP_ENV": "staging",
-        "EXPO_PUBLIC_API_BASE_URL": "https://staging-api.example.com",
+        "EXPO_PUBLIC_API_BASE_URL": "https://staging-api.example.com/api/v1",
         "EXPO_PUBLIC_USE_MOCKS": "false"
       }
     },
     "production": {
       "env": {
         "EXPO_PUBLIC_APP_ENV": "production",
-        "EXPO_PUBLIC_API_BASE_URL": "https://api.example.com",
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.example.com/api/v1",
         "EXPO_PUBLIC_USE_MOCKS": "false"
       }
     }

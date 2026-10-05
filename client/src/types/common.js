@@ -1,6 +1,5 @@
 /**
- * Shared JSDoc typedefs. Payload shapes here are PROVISIONAL until the
- * backend contract is agreed. Mocks must match these shapes.
+ * Shared JSDoc typedefs for mobile-facing API and UI data.
  */
 
 /** @typedef {'day' | 'night'} AppMode */
@@ -10,8 +9,6 @@
 /**
  * @typedef {Object} HealthStatus
  * @property {string} status
- * @property {string} service
- * @property {string} timestamp  ISO date string
  */
 
 /**
@@ -29,7 +26,8 @@
 /**
  * @typedef {Object} AuthSession
  * @property {User} user
- * @property {string} token
+ * @property {string} token       Access token held in memory
+ * @property {string} refreshToken Rotating credential held in secure storage
  */
 
 /**

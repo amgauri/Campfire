@@ -5,8 +5,8 @@ import { queryClient } from '@/state/queryClient';
 import { logger } from '@/utils/logger';
 
 /**
- * Client-side auth state. The token is in memory only for now. Persisting it
- * (expo-secure-store) waits until the backend defines the auth flow.
+ * Access tokens stay in memory; the real API adapter persists refresh tokens
+ * with platform secure storage and restores sessions through token rotation.
  */
 export const useAuthStore = create((set, get) => ({
   hydrated: false,

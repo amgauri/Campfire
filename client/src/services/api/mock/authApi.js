@@ -26,14 +26,14 @@ export async function restoreSession() {
 
 export async function login({ email, password }) {
   await sleep(600);
-  if (!email?.trim() || !password || password.length < 6) throw invalid();
+  if (!email?.trim() || !password || password.length < 12) throw invalid();
   currentUser = makeUser({ email: email.trim().toLowerCase(), interests: ['Music'], onboardingComplete: true });
   return { user: currentUser, token: 'mock-token' };
 }
 
 export async function signup({ displayName, email, password }) {
   await sleep(700);
-  if (!displayName?.trim() || !email?.trim() || !password || password.length < 6) {
+  if (!displayName?.trim() || !email?.trim() || !password || password.length < 12) {
     throw new ApiError('Check your details', { status: 400, code: 'VALIDATION_ERROR' });
   }
   currentUser = makeUser({

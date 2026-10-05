@@ -57,7 +57,7 @@ export default function MediaFrame({
         <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center', gap: spacing.xs }]}>
           <Icon name="image" size="lg" tone="muted" />
           <AppText variant="caption" tone="muted">
-            Couldn't load media
+            Couldn&apos;t load media
           </AppText>
         </View>
       )}

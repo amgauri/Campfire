@@ -70,7 +70,7 @@ export default function LoginScreen() {
 
         {env.useMocks ? (
           <AppText variant="caption" tone="muted" align="center">
-            Mock mode: any email and a 6+ character password works.
+            Mock mode: any email and a 12+ character password works.
           </AppText>
         ) : null}
       </ScrollView>

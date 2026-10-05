@@ -32,7 +32,7 @@ export default function SignupScreen() {
     }
   };
 
-  const ready = displayName.trim() && email.trim() && password.length >= 6;
+  const ready = displayName.trim() && email.trim() && password.length >= 12;
 
   return (
     <Screen>
@@ -58,7 +58,7 @@ export default function SignupScreen() {
           onChangeText={setPassword}
           secureTextEntry
           autoCapitalize="none"
-          helperText="At least 6 characters."
+          helperText="At least 12 characters."
           error={error}
         />
         <Button title="Sign up" onPress={onSubmit} loading={submitting} disabled={!ready} fullWidth />

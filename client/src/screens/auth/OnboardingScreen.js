@@ -44,7 +44,7 @@ export default function OnboardingScreen() {
           <AppText variant="title" accessibilityRole="header">
             Welcome{user ? `, ${user.displayName}` : ''}
           </AppText>
-          <AppText tone="muted">Pick a few interests so Campfire can find people you'll click with.</AppText>
+          <AppText tone="muted">Pick a few interests so Campfire can find people you&apos;ll click with.</AppText>
         </View>
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>

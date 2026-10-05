@@ -11,12 +11,22 @@ export class ApiError extends Error {
   }
 }
 
-// Authentication is not implemented yet. Later, the auth layer will register a
-// provider here so every request can attach a token without touching API modules.
+// The auth store provides its in-memory access token without coupling screens to HTTP.
 let authTokenProvider = () => null;
+let authRefreshHandler = null;
+let refreshedAccessToken = null;
+let refreshInFlight = null;
 
 export function setAuthTokenProvider(provider) {
   authTokenProvider = typeof provider === 'function' ? provider : () => null;
+}
+
+export function setAuthRefreshHandler(handler) {
+  authRefreshHandler = typeof handler === 'function' ? handler : null;
+}
+
+export function setRefreshedAccessToken(token) {
+  refreshedAccessToken = typeof token === 'string' ? token : null;
 }
 
 function buildUrl(path, query) {
@@ -41,7 +51,11 @@ async function parseBody(response) {
   }
 }
 
-async function request(method, path, { body, query, headers, signal, timeoutMs } = {}) {
+async function request(
+  method,
+  path,
+  { body, query, headers, signal, timeoutMs, skipAuthRefresh = false } = {},
+) {
   const controller = new AbortController();
   let timedOut = false;
 
@@ -55,7 +69,7 @@ async function request(method, path, { body, query, headers, signal, timeoutMs }
     else signal.addEventListener('abort', () => controller.abort());
   }
 
-  const token = await authTokenProvider();
+  const token = refreshedAccessToken ?? (await authTokenProvider());
 
   try {
     const response = await fetch(buildUrl(path, query), {
@@ -73,6 +87,27 @@ async function request(method, path, { body, query, headers, signal, timeoutMs }
     const data = await parseBody(response);
 
     if (!response.ok) {
+      if (response.status === 401 && token && !skipAuthRefresh && authRefreshHandler) {
+        try {
+          refreshInFlight ??= Promise.resolve().then(authRefreshHandler).finally(() => {
+            refreshInFlight = null;
+          });
+          const accessToken = await refreshInFlight;
+          if (accessToken) {
+            refreshedAccessToken = accessToken;
+            return request(method, path, {
+              body,
+              query,
+              headers,
+              signal,
+              timeoutMs,
+              skipAuthRefresh: true,
+            });
+          }
+        } catch {
+          // Keep the original request error; the session can be restored on next login.
+        }
+      }
       throw new ApiError(
         (data && data.message) || `Request failed with status ${response.status}`,
         { status: response.status, code: (data && data.code) || 'HTTP_ERROR', details: data }

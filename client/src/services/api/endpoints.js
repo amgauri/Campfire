@@ -1,9 +1,9 @@
-// PROVISIONAL: paths and versioning are owned by the backend team.
-// Only Node.js endpoints belong here. Never FastAPI paths.
+// Paths are relative to the configured Node API base URL, which includes /api/v1.
 export const ENDPOINTS = Object.freeze({
-  health: '/health',
+  health: '/health/live',
   auth: Object.freeze({
     session: '/auth/session',
+    refresh: '/auth/refresh',
     login: '/auth/login',
     signup: '/auth/signup',
     logout: '/auth/logout',
