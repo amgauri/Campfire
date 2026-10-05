@@ -21,6 +21,7 @@ describe('environment configuration', () => {
       authRefreshTokenTtlDays: 30,
       fastApiBaseUrl: null,
       fastApiTimeoutMs: 3000,
+      persistenceDriver: 'memory',
       mongoUri: null,
     });
   });
@@ -97,5 +98,32 @@ describe('environment configuration', () => {
         MONGO_URI: 'postgresql://hidden-secret',
       }),
     ).toThrow('Invalid environment configuration: MONGO_URI');
+  });
+
+  it('requires durable MongoDB configuration in production', () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: 'production',
+        HOST: '0.0.0.0',
+        AUTH_ACCESS_TOKEN_SECRET: testSecret,
+      }),
+    ).toThrow('Invalid environment configuration: PERSISTENCE_DRIVER');
+    expect(() =>
+      loadConfig({
+        NODE_ENV: 'production',
+        PERSISTENCE_DRIVER: 'mongodb',
+        HOST: '0.0.0.0',
+        AUTH_ACCESS_TOKEN_SECRET: testSecret,
+      }),
+    ).toThrow('Invalid environment configuration: MONGO_URI');
+    expect(
+      loadConfig({
+        NODE_ENV: 'production',
+        PERSISTENCE_DRIVER: 'mongodb',
+        HOST: '0.0.0.0',
+        MONGO_URI: 'mongodb://127.0.0.1/campfire',
+        AUTH_ACCESS_TOKEN_SECRET: testSecret,
+      }).persistenceDriver,
+    ).toBe('mongodb');
   });
 });

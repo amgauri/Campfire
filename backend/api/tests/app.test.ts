@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 import { createApp } from '../src/app.js';
 import { loadConfig } from '../src/config/env.js';
 
@@ -19,6 +20,46 @@ describe('HTTP foundation', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ data: { status: 'ok' } });
+  });
+
+  it('reports readiness separately from liveness', async () => {
+    const ready = await request(app).get('/api/v1/health/ready');
+    expect(ready.status).toBe(200);
+    expect(ready.body).toEqual({ data: { status: 'ready' } });
+
+    const unavailable = createApp(
+      loadConfig({
+        NODE_ENV: 'test',
+        LOG_LEVEL: 'silent',
+        AUTH_ACCESS_TOKEN_SECRET: testSecret,
+      }),
+      {},
+      undefined,
+      { readinessCheck: () => Promise.resolve(false) },
+    );
+    const notReady = await request(unavailable).get('/api/v1/health/ready');
+    expect(notReady.status).toBe(503);
+    const error = z
+      .object({ code: z.string(), requestId: z.string() })
+      .parse(notReady.body);
+    expect(error.code).toBe('SERVICE_UNAVAILABLE');
+    expect(error.requestId).toMatch(/^[0-9a-f-]{36}$/);
+    expect((await request(unavailable).get('/api/v1/health/live')).status).toBe(
+      200,
+    );
+  });
+
+  it('does not silently use in-memory repositories in MongoDB mode', () => {
+    const persistentConfig = loadConfig({
+      NODE_ENV: 'production',
+      HOST: '0.0.0.0',
+      PERSISTENCE_DRIVER: 'mongodb',
+      MONGO_URI: 'mongodb://127.0.0.1/campfire',
+      AUTH_ACCESS_TOKEN_SECRET: testSecret,
+    });
+    expect(() => createApp(persistentConfig)).toThrow(
+      'MongoDB persistence requires all durable repositories',
+    );
   });
 
   it('returns the standard 404 error with a matching request ID', async () => {

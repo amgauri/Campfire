@@ -60,7 +60,11 @@ export class InMemoryRefreshSessionRepository implements RefreshSessionRepositor
   }): Promise<void> {
     const session = this.sessions.get(input.id);
     if (session && hashesMatch(session.verifierHash, input.verifierHash)) {
-      session.revokedAt = input.now;
+      for (const familySession of this.sessions.values()) {
+        if (familySession.familyId === session.familyId) {
+          familySession.revokedAt = input.now;
+        }
+      }
     }
     return Promise.resolve();
   }

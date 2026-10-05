@@ -26,42 +26,77 @@ const mongoUriSchema = z
     'Expected a MongoDB connection URI',
   );
 
-const envSchema = z.object({
-  NODE_ENV: z
-    .enum(['development', 'test', 'production'])
-    .default('development'),
-  PORT: z.coerce.number().int().min(1).max(65535).default(3000),
-  HOST: z.enum(['127.0.0.1', '0.0.0.0']).default('127.0.0.1'),
-  CORS_ORIGINS: z
-    .string()
-    .default('')
-    .transform((value) =>
-      value
-        .split(',')
-        .map((origin) => origin.trim())
-        .filter(Boolean),
-    )
-    .pipe(z.array(originSchema)),
-  LOG_LEVEL: z
-    .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent'])
-    .default('info'),
-  AUTH_ACCESS_TOKEN_SECRET: signingKeySchema,
-  AUTH_ACCESS_TOKEN_TTL_SECONDS: z.coerce
-    .number()
-    .int()
-    .min(60)
-    .max(3600)
-    .default(900),
-  AUTH_REFRESH_TOKEN_TTL_DAYS: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(90)
-    .default(30),
-  FASTAPI_BASE_URL: z.union([originSchema, z.literal('')]).default(''),
-  FASTAPI_TIMEOUT_MS: z.coerce.number().int().min(100).max(10000).default(3000),
-  MONGO_URI: mongoUriSchema.default(''),
-});
+const persistenceDriverSchema = z.enum(['memory', 'mongodb']);
+
+const envSchema = z
+  .object({
+    NODE_ENV: z
+      .enum(['development', 'test', 'production'])
+      .default('development'),
+    PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+    HOST: z.enum(['127.0.0.1', '0.0.0.0']).default('127.0.0.1'),
+    CORS_ORIGINS: z
+      .string()
+      .default('')
+      .transform((value) =>
+        value
+          .split(',')
+          .map((origin) => origin.trim())
+          .filter(Boolean),
+      )
+      .pipe(z.array(originSchema)),
+    LOG_LEVEL: z
+      .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent'])
+      .default('info'),
+    AUTH_ACCESS_TOKEN_SECRET: signingKeySchema,
+    AUTH_ACCESS_TOKEN_TTL_SECONDS: z.coerce
+      .number()
+      .int()
+      .min(60)
+      .max(3600)
+      .default(900),
+    AUTH_REFRESH_TOKEN_TTL_DAYS: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(90)
+      .default(30),
+    FASTAPI_BASE_URL: z.union([originSchema, z.literal('')]).default(''),
+    FASTAPI_TIMEOUT_MS: z.coerce
+      .number()
+      .int()
+      .min(100)
+      .max(10000)
+      .default(3000),
+    PERSISTENCE_DRIVER: persistenceDriverSchema.default('memory'),
+    MONGO_URI: mongoUriSchema.default(''),
+  })
+  .superRefine((value, context) => {
+    if (value.PERSISTENCE_DRIVER === 'mongodb' && !value.MONGO_URI) {
+      context.addIssue({
+        code: 'custom',
+        path: ['MONGO_URI'],
+        message: 'MONGO_URI is required when MongoDB persistence is enabled',
+      });
+    }
+    if (
+      value.NODE_ENV === 'production' &&
+      value.PERSISTENCE_DRIVER !== 'mongodb'
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['PERSISTENCE_DRIVER'],
+        message: 'Production requires MongoDB persistence',
+      });
+    }
+    if (value.NODE_ENV === 'production' && value.HOST !== '0.0.0.0') {
+      context.addIssue({
+        code: 'custom',
+        path: ['HOST'],
+        message: 'Production must bind to 0.0.0.0',
+      });
+    }
+  });
 
 export type AppConfig = {
   nodeEnv: z.output<typeof envSchema>['NODE_ENV'];
@@ -74,6 +109,7 @@ export type AppConfig = {
   authRefreshTokenTtlDays: number;
   fastApiBaseUrl: string | null;
   fastApiTimeoutMs: number;
+  persistenceDriver: z.output<typeof persistenceDriverSchema>;
   mongoUri: string | null;
 };
 
@@ -97,6 +133,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     authRefreshTokenTtlDays: result.data.AUTH_REFRESH_TOKEN_TTL_DAYS,
     fastApiBaseUrl: result.data.FASTAPI_BASE_URL || null,
     fastApiTimeoutMs: result.data.FASTAPI_TIMEOUT_MS,
+    persistenceDriver: result.data.PERSISTENCE_DRIVER,
     mongoUri: result.data.MONGO_URI || null,
   };
 }

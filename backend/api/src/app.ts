@@ -12,7 +12,7 @@ import {
 } from './infrastructure/auth/create-auth-router.js';
 import { InMemoryPostRepository } from './infrastructure/posts/in-memory-post-repository.js';
 import { InMemorySurgeStatusRepository } from './infrastructure/surge/in-memory-surge-status-repository.js';
-import { healthRouter } from './modules/health/routes.js';
+import { createHealthRouter } from './modules/health/routes.js';
 import { PostInteractionService } from './modules/posts/interaction-service.js';
 import { createPostRouter } from './modules/posts/routes.js';
 import { PostService } from './modules/posts/service.js';
@@ -25,22 +25,41 @@ import { createSurgeRouter } from './modules/surge/routes.js';
 import { SurgeStatusService } from './modules/surge/service.js';
 import { createUserProfileRouter } from './modules/users/routes.js';
 import { UserProfileService } from './modules/users/service.js';
+import type { PostRepository } from './modules/posts/port.js';
+
+export type AppRuntimeDependencies = {
+  posts?: PostRepository;
+  readinessCheck?: () => Promise<boolean>;
+};
 
 export function createApp(
   config: AppConfig,
   authDependencies: AuthDependencies = {},
-  surgeStatusSource: SurgeStatusSource = new InMemorySurgeStatusRepository(),
+  surgeStatusSource?: SurgeStatusSource,
+  runtime: AppRuntimeDependencies = {},
 ) {
+  if (
+    config.persistenceDriver === 'mongodb' &&
+    (!authDependencies.users ||
+      !authDependencies.refreshSessions ||
+      !surgeStatusSource ||
+      !runtime.posts ||
+      !runtime.readinessCheck)
+  ) {
+    throw new Error('MongoDB persistence requires all durable repositories');
+  }
   const app = express();
   const logger = createLogger(config);
   const auth = createAuthModule(config, authDependencies);
-  const posts = new InMemoryPostRepository();
+  const posts = runtime.posts ?? new InMemoryPostRepository();
+  const activeSurgeStatusSource =
+    surgeStatusSource ?? new InMemorySurgeStatusRepository();
   const overrideSource: SurgeOverrideRepository | undefined =
-    'setOverride' in surgeStatusSource &&
-    typeof surgeStatusSource.setOverride === 'function'
-      ? (surgeStatusSource as SurgeOverrideRepository)
+    'setOverride' in activeSurgeStatusSource &&
+    typeof activeSurgeStatusSource.setOverride === 'function'
+      ? (activeSurgeStatusSource as SurgeOverrideRepository)
       : undefined;
-  const surge = new SurgeStatusService(surgeStatusSource, overrideSource);
+  const surge = new SurgeStatusService(activeSurgeStatusSource, overrideSource);
 
   app.disable('x-powered-by');
   app.use(requestIdMiddleware);
@@ -49,7 +68,10 @@ export function createApp(
   app.use(cors({ origin: config.corsOrigins }));
   app.use(express.json({ limit: '100kb' }));
 
-  app.use('/api/v1/health', healthRouter);
+  app.use(
+    '/api/v1/health',
+    createHealthRouter(runtime.readinessCheck ?? (() => Promise.resolve(true))),
+  );
   app.use('/api/v1/auth', auth.router);
   app.use(
     '/api/v1/users',

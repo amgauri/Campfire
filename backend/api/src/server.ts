@@ -6,16 +6,19 @@ import { connectDB, disconnectDB } from './lib/db.js';
 
 dotenv.config({ quiet: true });
 const config = loadConfig();
-if (config.nodeEnv === 'production') {
-  throw new Error(
-    'Persistent authentication repositories are required in production',
-  );
-}
 const logger = createLogger(config);
-const app = createApp(config);
 
 async function start(): Promise<void> {
-  if (config.mongoUri) await connectDB(config.mongoUri);
+  const mongo =
+    config.persistenceDriver === 'mongodb' && config.mongoUri
+      ? await connectDB(config.mongoUri)
+      : null;
+  const app = createApp(
+    config,
+    mongo ? { users: mongo.users, refreshSessions: mongo.refreshSessions } : {},
+    mongo?.surgeStatus,
+    mongo ? { posts: mongo.posts, readinessCheck: mongo.isReady } : undefined,
+  );
 
   const server = app.listen(config.port, config.host, () => {
     logger.info(
@@ -29,7 +32,7 @@ async function start(): Promise<void> {
     if (closing) return;
     closing = true;
     await new Promise<void>((resolve) => server.close(() => resolve()));
-    if (config.mongoUri) await disconnectDB();
+    if (mongo) await disconnectDB();
   }
 
   for (const signal of ['SIGINT', 'SIGTERM'] as const) {
@@ -55,5 +58,7 @@ void start().catch(async (error: unknown) => {
     'Campfire API startup failed',
   );
   process.exitCode = 1;
-  if (config.mongoUri) await disconnectDB().catch(() => undefined);
+  if (config.persistenceDriver === 'mongodb') {
+    await disconnectDB().catch(() => undefined);
+  }
 });
